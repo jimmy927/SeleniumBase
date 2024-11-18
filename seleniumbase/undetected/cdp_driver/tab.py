@@ -119,6 +119,7 @@ class Tab(Connection):
     When you import * from this package, cdp will be in your namespace,
     and contains all domains/actions/events you can act upon.
     """
+
     browser: cdp_browser.Browser
     _download_behavior: List[str] = None
 
@@ -306,10 +307,17 @@ class Tab(Connection):
         selector = selector.strip()
         items = []
         if include_frames:
-            frames = await self.get_iframes_recursively()
-            # Unfortunately, asyncio.gather is not an option here
-            for fr in frames:
-                items.extend(await fr.query_selector_all_async(selector))
+            doc = await self.send(cdp.dom.get_document(-1, True))
+            iframes = util.filter_recurse_all(
+                doc, lambda node: node.node_name == "IFRAME"
+            )
+            if iframes:
+                iframes_elems = [
+                    element.create(iframe, self, iframe.content_document)
+                    for iframe in iframes
+                ]
+                for fr in iframes_elems:
+                    items.extend(await fr.query_selector_all_async(selector))
         items.extend(await self.query_selector_all(selector))
         while not items:
             await self
@@ -323,20 +331,28 @@ class Tab(Connection):
 
     async def get_iframes_recursively(self):
         frames = await self.query_selector_all("iframe")
+        ret_frames = frames
         for frame in frames:
             more_frames = await self.get_iframes_recursively_inner(frame)
             if more_frames:
+                ret_frames += more_frames
                 print(f"more_frames: {more_frames.__len__()}")
             else:
                 print(f"more_frames: None")
         print(f"get_iframes_recursively {frames.__len__()}")
-        return frames
+        return ret_frames
 
     async def get_iframes_recursively_inner(self, frame):
+        print(f"get_iframes_recursively_inner for "
+              f"{frame.attrs.get('id')} {frame.attrs.get('title')}")
         frames = await frame.query_selector_all_async("iframe")
+        ret_frames = frames
         print(f"get_iframes_recursively_inner: {frames.__len__()}")
         for frame in frames:
-            return await self.get_iframes_recursively_inner(frame)
+            more_frames = await self.get_iframes_recursively_inner(frame)
+            if more_frames:
+                ret_frames += more_frames
+        return ret_frames
 
     async def get(
         self,
