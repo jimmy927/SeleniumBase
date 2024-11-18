@@ -343,8 +343,10 @@ class Tab(Connection):
         return ret_frames
 
     async def get_iframes_recursively_inner(self, frame):
-        print(f"get_iframes_recursively_inner for "
-              f"{frame.attrs.get('id')} {frame.attrs.get('title')}")
+        print(
+            f"get_iframes_recursively_inner for "
+            f"{frame.attrs.get('id')} {frame.attrs.get('title')}"
+        )
         frames = await frame.query_selector_all_async("iframe")
         ret_frames = frames
         print(f"get_iframes_recursively_inner: {frames.__len__()}")
@@ -456,9 +458,7 @@ class Tab(Connection):
                 doc = _node.content_document
         node_id = None
         try:
-            node_id = await self.send(
-                cdp.dom.query_selector(doc.node_id, selector)
-            )
+            node_id = await self.send(cdp.dom.query_selector(doc.node_id, selector))
         except ProtocolException as e:
             if _node is not None:
                 if "could not find node" in e.message.lower():
@@ -495,9 +495,7 @@ class Tab(Connection):
         """
         text = text.strip()
         doc = await self.send(cdp.dom.get_document(-1, True))
-        search_id, nresult = await self.send(
-            cdp.dom.perform_search(text, True)
-        )
+        search_id, nresult = await self.send(cdp.dom.perform_search(text, True))
         if nresult:
             node_ids = await self.send(
                 cdp.dom.get_search_results(search_id, 0, nresult)
@@ -541,9 +539,7 @@ class Tab(Connection):
                 items.append(elem)
         # Since we already fetched the entire doc, including shadow and frames,
         # let's also search through the iframes.
-        iframes = util.filter_recurse_all(
-            doc, lambda node: node.node_name == "IFRAME"
-        )
+        iframes = util.filter_recurse_all(doc, lambda node: node.node_name == "IFRAME")
         if iframes:
             iframes_elems = [
                 element.create(iframe, self, iframe.content_document)
@@ -586,12 +582,8 @@ class Tab(Connection):
         """
         doc = await self.send(cdp.dom.get_document(-1, True))
         text = text.strip()
-        search_id, nresult = await self.send(
-            cdp.dom.perform_search(text, True)
-        )
-        node_ids = await self.send(
-            cdp.dom.get_search_results(search_id, 0, nresult)
-        )
+        search_id, nresult = await self.send(cdp.dom.perform_search(text, True))
+        node_ids = await self.send(cdp.dom.get_search_results(search_id, 0, nresult))
         await self.send(cdp.dom.discard_search_results(search_id))
         if not node_ids:
             node_ids = []
@@ -621,9 +613,7 @@ class Tab(Connection):
                 items.append(elem)
         # Since the entire doc is already fetched, including shadow and frames,
         # also search through the iframes.
-        iframes = util.filter_recurse_all(
-            doc, lambda node: node.node_name == "IFRAME"
-        )
+        iframes = util.filter_recurse_all(doc, lambda node: node.node_name == "IFRAME")
         if iframes:
             iframes_elems = [
                 element.create(iframe, self, iframe.content_document)
@@ -640,9 +630,7 @@ class Tab(Connection):
                         element.create(text_node, self, iframe_elem.tree)
                         for text_node in iframe_text_nodes
                     ]
-                    items.extend(
-                        text_node.parent for text_node in iframe_text_elems
-                    )
+                    items.extend(text_node.parent for text_node in iframe_text_elems)
         try:
             if not items:
                 return
@@ -877,13 +865,9 @@ class Tab(Connection):
     async def close(self):
         """Close the current target (ie: tab,window,page)"""
         if self.target and self.target.target_id:
-            await self.send(
-                cdp.target.close_target(target_id=self.target.target_id)
-            )
+            await self.send(cdp.target.close_target(target_id=self.target.target_id))
 
-    async def get_window(self) -> Tuple[
-        cdp.browser.WindowID, cdp.browser.Bounds
-    ]:
+    async def get_window(self) -> Tuple[cdp.browser.WindowID, cdp.browser.Bounds]:
         """Get the window Bounds"""
         window_id, bounds = await self.send(
             cdp.browser.get_window_for_target(self.target_id)
@@ -980,18 +964,14 @@ class Tab(Connection):
             cdp.browser.WindowState.NORMAL,
         )
         if window_state == cdp.browser.WindowState.NORMAL:
-            bounds = cdp.browser.Bounds(
-                left, top, width, height, window_state
-            )
+            bounds = cdp.browser.Bounds(left, top, width, height, window_state)
         else:
             # min, max, full can only be used when current state == NORMAL,
             # therefore, first switch to NORMAL
             await self.set_window_state(state="normal")
             bounds = cdp.browser.Bounds(window_state=window_state)
 
-        await self.send(
-            cdp.browser.set_window_bounds(window_id, bounds=bounds)
-        )
+        await self.send(cdp.browser.set_window_bounds(window_id, bounds=bounds))
 
     async def scroll_down(self, amount=25):
         """
@@ -1079,9 +1059,7 @@ class Tab(Connection):
                 await self.sleep(0.5)
             return item
 
-    async def download_file(
-        self, url: str, filename: Optional[PathLike] = None
-    ):
+    async def download_file(self, url: str, filename: Optional[PathLike] = None):
         """
         Downloads the file by the given url.
         :param url: The URL of the file.
@@ -1212,9 +1190,7 @@ class Tab(Connection):
 
     async def get_all_linked_sources(self) -> List["element.Element"]:
         """Get all elements of tag: link, a, img, scripts meta, video, audio"""
-        all_assets = await self.query_selector_all(
-            selector="a,link,img,script,meta"
-        )
+        all_assets = await self.query_selector_all(selector="a,link,img,script,meta")
         return [element.create(asset, self) for asset in all_assets]
 
     async def get_all_urls(self, absolute=True) -> List[str]:
@@ -1228,9 +1204,7 @@ class Tab(Connection):
         import urllib.parse
 
         res = []
-        all_assets = await self.query_selector_all(
-            selector="a,link,img,script,meta"
-        )
+        all_assets = await self.query_selector_all(selector="a,link,img,script,meta")
         for asset in all_assets:
             if not absolute:
                 res.append(asset.src or asset.href)
@@ -1279,9 +1253,7 @@ class Tab(Connection):
         origin = "/".join(self.url.split("/", 3)[:-1])
         items = await self.send(
             cdp.dom_storage.get_dom_storage_items(
-                cdp.dom_storage.StorageId(
-                    is_local_storage=True, security_origin=origin
-                )
+                cdp.dom_storage.StorageId(is_local_storage=True, security_origin=origin)
             )
         )
         retval = {}
