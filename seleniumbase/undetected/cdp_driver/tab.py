@@ -306,10 +306,10 @@ class Tab(Connection):
         selector = selector.strip()
         items = []
         if include_frames:
-            frames = await self.query_selector_all("iframe")
+            frames = await self.get_iframes_recursively()
             # Unfortunately, asyncio.gather is not an option here
             for fr in frames:
-                items.extend(await fr.query_selector_all(selector))
+                items.extend(await fr.query_selector_all_async(selector))
         items.extend(await self.query_selector_all(selector))
         while not items:
             await self
@@ -320,6 +320,23 @@ class Tab(Connection):
                 )
             await self.sleep(0.5)
         return items
+
+    async def get_iframes_recursively(self):
+        frames = await self.query_selector_all("iframe")
+        for frame in frames:
+            more_frames = await self.get_iframes_recursively_inner(frame)
+            if more_frames:
+                print(f"more_frames: {more_frames.__len__()}")
+            else:
+                print(f"more_frames: None")
+        print(f"get_iframes_recursively {frames.__len__()}")
+        return frames
+
+    async def get_iframes_recursively_inner(self, frame):
+        frames = await frame.query_selector_all_async("iframe")
+        print(f"get_iframes_recursively_inner: {frames.__len__()}")
+        for frame in frames:
+            return await self.get_iframes_recursively_inner(frame)
 
     async def get(
         self,
@@ -339,8 +356,7 @@ class Tab(Connection):
         """
         if not self.browser:
             raise AttributeError(
-                "This page/tab has no browser attribute, "
-                "so you can't use get()"
+                "This page/tab has no browser attribute, " "so you can't use get()"
             )
         if new_window and not new_tab:
             new_tab = True
@@ -369,7 +385,7 @@ class Tab(Connection):
             doc: cdp.dom.Node = await self.send(cdp.dom.get_document(-1, True))
         else:
             doc = _node
-            if _node.node_name == "IFRAME":
+            if _node.node_name == "IFRAME" and _node.content_document:
                 doc = _node.content_document
         node_ids = []
         try:
