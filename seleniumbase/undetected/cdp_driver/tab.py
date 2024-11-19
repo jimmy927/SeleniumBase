@@ -307,17 +307,10 @@ class Tab(Connection):
         selector = selector.strip()
         items = []
         if include_frames:
-            doc = await self.send(cdp.dom.get_document(-1, True))
-            iframes = util.filter_recurse_all(
-                doc, lambda node: node.node_name == "IFRAME"
-            )
-            if iframes:
-                iframes_elems = [
-                    element.create(iframe, self, iframe.content_document)
-                    for iframe in iframes
-                ]
-                for fr in iframes_elems:
-                    items.extend(await fr.query_selector_all_async(selector))
+            frames = await self.get_iframes_recursively()
+            # Unfortunately, asyncio.gather is not an option here
+            for fr in frames:
+                items.extend(await fr.query_selector_all_async(selector))
         items.extend(await self.query_selector_all(selector))
         while not items:
             await self
