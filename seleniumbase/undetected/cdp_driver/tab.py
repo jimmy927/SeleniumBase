@@ -336,7 +336,7 @@ class Tab(Connection):
                 print(f"more_frames: {more_frames.__len__()}")
             else:
                 print(f"more_frames: None")
-        print(f"get_iframes_recursively {frames.__len__()}")
+        print(f"get_iframes_recursively {ret_frames.__len__()}")
         return ret_frames
 
     async def get_iframes_recursively_inner(self, frame):
@@ -345,18 +345,22 @@ class Tab(Connection):
             f"{frame.attrs.get('id')} {frame.attrs.get('title')}"
         )
         doc = frame.content_document
-        iframes = util.filter_recurse_all(doc, lambda node: node.node_name == "IFRAME")
-        iframes_elems = [
-            element.create(iframe, self, iframe.content_document) for iframe in iframes
-        ]
+        if doc:
+            iframes = util.filter_recurse_all(
+                doc, lambda node: node.node_name == "IFRAME"
+            )
+            iframes_elems = [
+                element.create(iframe, self, iframe.content_document)
+                for iframe in iframes
+            ]
 
-        ret_frames = iframes_elems
-        print(f"get_iframes_recursively_inner: {iframes_elems.__len__()}")
-        for frame in iframes_elems:
-            more_frames = await self.get_iframes_recursively_inner(frame)
-            if more_frames:
-                ret_frames += more_frames
-        return ret_frames
+            ret_frames = iframes_elems
+            print(f"get_iframes_recursively_inner: {iframes_elems.__len__()}")
+            for frame in iframes_elems:
+                more_frames = await self.get_iframes_recursively_inner(frame)
+                if more_frames:
+                    ret_frames += more_frames
+            return ret_frames
 
     async def get(
         self,
